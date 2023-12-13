@@ -1,0 +1,129 @@
+<html>
+    <head>
+        <title>Tesseract Image Generator</title>
+        <script src = "https://code.jquery.com/jquery-3.6.4.slim.min.js" integrity = "sha256-a2yjHM4jnF9f54xUQakjZGaqYs/V1CYvWpoqZzC2/Bw = " crossorigin = "anonymous"></script>
+        <script src = "https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+        <script src = "https://stuk.github.io/jszip/dist/jszip.min.js"></script>
+        <script src = "filesaver.js"></script>
+
+        <style>
+            @font-face {
+                font-family: prompt;
+                src: url(FZY4JW.TTF);
+            }
+
+            .container {
+                width: 74px;
+                height: 32px;
+                border: 1px solid black;
+                font-family: prompt;
+                -webkit-text-stroke-width: 1px;
+                -webkit-text-stroke-color: black;
+                color: white;
+                background: #f7f7f7;
+                font-size: 15pt;
+                font-weight: bolder;
+                letter-spacing: 2px;
+                position: relative;
+            }
+
+            .font {
+                left: 24px;
+                top: 6px;
+                position: absolute;
+                overflow: hidden;
+            }
+
+            .lorem-ipsum {
+                position: absolute;
+                top: -18px;
+                left: 3px;
+                width: 100%;
+                font-family: serif;
+                color: black;
+                font-weight: normal;
+                font-size: 10px;
+                white-space: nowrap;
+            }
+
+            .progress {
+                width: 256px;
+                height: 8px;
+                border: 1px solid black;
+                padding: 2px;
+            }
+
+            .progress-inner {
+                height: 100%;
+                background: red;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div class = "container" id = "win">
+            <p class = "lorem-ipsum">Lorem ipsum</p>
+            <div class = "font">3*5</div>
+        </div>
+
+        <button onclick = "render()">Start renderring</button>
+
+        <div class = "progress">
+            <div class = "progress-inner"></div>
+        </div>
+
+        <script>
+            var zip = new JSZip();
+            var operators = ['+', '-', '*'];
+            var renderCount = 0;
+            var groundTruth = [];
+
+            function render() {
+                console.log('rendering ..');
+
+                var number1 = Math.round(Math.random() * 9);
+                var number2 = Math.round(Math.random() * 9);
+
+                $('.font').css({top: `${6 + Math.round(Math.random() * 20) - 10}px`, left: `${24 + Math.round(Math.random() * 20) - 10}px`})
+
+                var operator = operators[Math.round(Math.round(Math.random() * 2))];
+
+                var string = `${number1}${operator}${number2}`;
+                $('.font').html(string);
+                
+                groundTruth.push(string)
+                zip.file(`rox_${renderCount}.gt.text`, string);
+                DownloadAsImage(`eng_${renderCount}.png`);
+            } 
+
+            function DownloadAsImage(filename) {
+                var element = $("#win")[0];
+                html2canvas(element).then(async function (canvas) {
+                    var myImage = canvas.toDataURL().replace(/^data:image\/(png|jpg);base64,/, "");
+                    zip.file(filename, myImage, {base64: true});
+
+                    /*
+                    var link = document.createElement("a");
+
+                    link.download = filename;
+                    link.href = myImage;
+                    document.body.appendChild(link);
+                    link.click();
+                    */
+
+                    if (renderCount < 999) {
+                        render();
+                        renderCount++;
+
+                        $('.progress-inner').css('width', `${renderCount / 999 * 100}px`)
+                    } else {
+                        zip.file(`all.gt`, groundTruth.join('\n'));
+                        zip.generateAsync({type: 'blob'}).then(function (content) {
+                            saveAs(content, 'trained.zip');
+                        });
+                    }
+                });
+            }
+        </script>
+    </body>
+</html>
